@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeadMate By M.OneGroup | AI Consultant</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Using Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #e2e8f0; /* Soft gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        /* Main chat container shadow and look */
+        .chat-container {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transition: transform 0.3s ease;
+        }
+
+        /* Custom scrollbar for chat history */
+        #chat-history::-webkit-scrollbar {
+            width: 8px;
+        }
+        #chat-history::-webkit-scrollbar-thumb {
+            background-color: #94a3b8; /* Slate gray for thumb */
+            border-radius: 4px;
+        }
+        #chat-history::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        
+        .user-message {
+            background-color: #059669; /* Emerald Green */
+            color: white;
+            border-radius: 1rem 1rem 0.25rem 1rem; /* Speech bubble effect */
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+        .ai-message {
+            background-color: #f1f5f9; /* Light slate */
+            color: #1f2937;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem 1rem 1rem 0.25rem; /* Speech bubble effect */
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+
+        /* Loading Dots Animation */
+        .dot {
+            height: 8px;
+            width: 8px;
+            background-color: #4b5563;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: dot-fading 1.5s infinite ease-in-out;
+        }
+        .dot-1 { animation-delay: 0s; }
+        .dot-2 { animation-delay: 0.2s; }
+        .dot-3 { animation-delay: 0.4s; }
+
+        @keyframes dot-fading {
+            0%, 80%, 100% { opacity: 0.5; transform: scale(0.8); }
+            40% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Button hover effect */
+        #send-button {
+            transition: all 0.2s ease-in-out;
+        }
+        #send-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(5, 150, 105, 0.3);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="chat-container w-full max-w-lg mx-auto bg-white rounded-2xl overflow-hidden flex flex-col h-[90vh] sm:h-[750px] my-4">
+        
+        <!-- Header -->
+        <header class="p-4 bg-gray-900 text-white flex justify-between items-center rounded-t-2xl shadow-lg">
+            <h1 class="text-xl font-extrabold flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                LeadMate By M.OneGroup | AI Consultant
+            </h1>
+            <span class="text-sm text-gray-400 font-medium">Sales Mode ON</span>
+        </header>
+
+        <!-- Chat History Area -->
+        <div id="chat-history" class="flex-grow p-5 space-y-4 overflow-y-auto">
+            <!-- Initial AI Welcome Message -->
+            <div class="flex justify-start">
+                <div class="ai-message p-4 shadow-md">
+                    <p class="font-bold text-green-700">LeadMate By M.OneGroup</p>
+                    <p class="mt-1">
+                        Hello! I am LeadMate M.OneGroup, your dedicated AI Sales Consultant for Digital Marketing.
+                        <br><br>
+                        I'm here to understand your biggest business challenges and connect you with solutions that guarantee ROI. We specialize in SEO, SMM, PPC, and high-conversion Web Design.
+                        <br><br>
+                        What is your company's biggest marketing goal?
+                    </p>
+                </div>
+            </div>
+            <!-- Loading Indicator Container -->
+            <div id="loading-indicator" class="flex justify-start hidden">
+                <div class="ai-message p-3 shadow-md">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-500">AI Typing</span>
+                        <div class="dot dot-1"></div>
+                        <div class="dot dot-2"></div>
+                        <div class="dot dot-3"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Messages will be injected here -->
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 border-t border-gray-200 bg-gray-50 flex space-x-3">
+            <input 
+                type="text" 
+                id="user-input" 
+                placeholder="Ask a question or describe your goal..."
+                class="flex-grow p-3 border border-gray-300 rounded-xl shadow-inner focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-150"
+            >
+            <button 
+                id="send-button"
+                class="px-6 py-3 bg-green-600 text-white font-bold rounded-xl shadow-lg shadow-green-500/50 disabled:opacity-50 disabled:shadow-none"
+            >
+                Send
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- API & FUNCTIONALITY SETUP ---
+
+        // IMPORTANT: Canvas environment mein key automatic inject ho jaati hai.
+        const apiKey = ''; 
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        
+        // DOM Elements
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+
+        // Conversation History for Memory
+        let chatHistoryArray = [];
+        let messageCount = 0; 
+        
+        // Internal tracking variables for sales strategy
+        let sales_score = 0; 
+        let price_objection_count = 0; 
+        let discount_given = false;    
+        let website_need_confirmed = false; 
+        let payment_intent_confirmed = false; 
+
+        
+        // Model ka persona set karne ke liye System Instruction
+        const systemInstruction = "You are 'LeadMate M.OneGroup', a highly aggressive Digital Marketing Sales Consultant focused on Pakistani clients and businesses. Your primary goal is to close the deal. Your answers MUST be very concise, limited to 3-4 short sentences. When you identify any business goal or problem, increase the internal sales_score by 1. Respond in a mixed Urdu/English (Hinglish) tone if the client initiates the conversation in that language. **CRITICAL 1 (Pricing): If the client asks for rates or pricing, immediately provide an estimated starting range in PKR (e.g., 'Our packages start from PKR 25,000/month, depending on your needs.'). Do NOT refuse to give a number, but always follow up by explaining that the exact quote requires a consultation.** **CRITICAL 2 (Negotiation): If the client says the price is too high ('rate zyada hain'), you must first discuss value, ROI, and quality for two messages without offering a discount.** **On the third message regarding price objection, you may offer a small, one-time 3% discount or a free small add-on service.** **You must not offer more than one discount.** After every two (2) messages and when the sales_score is greater than 1, immediately offer to take the next step (book a call).";
+        
+        // --- UTILITY FUNCTIONS ---
+
+        /** Display error message in the chat window */
+        function displayError(message) {
+            const errorElement = document.createElement('div');
+            errorElement.className = "flex justify-start my-2";
+            errorElement.innerHTML = `
+                <div class="ai-message p-4 shadow-md bg-red-100 border-red-400 text-red-700 border-l-4">
+                    <p class="font-bold">❌ Error</p>
+                    <p class="mt-1">${message}</p>
+                </div>
+            `;
+            chatHistory.appendChild(errorElement);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        /** Display a message in the chat history */
+        function displayMessage(text, sender) {
+            const messageContainer = document.createElement('div');
+            const messageBubble = document.createElement('div');
+
+            messageBubble.textContent = text; 
+            messageBubble.classList.add('p-3', 'shadow-md');
+
+            if (sender === 'user') {
+                messageContainer.className = 'flex justify-end';
+                messageBubble.classList.add('user-message');
+            } else { // sender === 'ai'
+                messageContainer.className = 'flex justify-start';
+                messageBubble.classList.add('ai-message');
+            }
+            
+            messageContainer.appendChild(messageBubble);
+            chatHistory.appendChild(messageContainer);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        /** Scroll to the bottom of the chat */
+        function scrollToBottom() {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        /** Enable/Disable input and button */
+        function setInteractionState(enabled) {
+            userInput.disabled = !enabled;
+            sendButton.disabled = !enabled;
+            if (enabled) {
+                loadingIndicator.classList.add('hidden');
+                sendButton.innerHTML = 'Send';
+            } else {
+                loadingIndicator.classList.remove('hidden');
+                sendButton.innerHTML = 'Wait...';
+            }
+        }
+
+        // --- CORE CHAT LOGIC ---
+
+        async function sendMessage() {
+            const userText = userInput.value.trim();
+            if (!userText) return; 
+
+            // 1. User Message Display
+            displayMessage(userText, 'user');
+            
+            // 2. Add User Message to History (for memory)
+            chatHistoryArray.push({ role: "user", parts: [{ text: userText }] });
+
+            // 3. Prepare API Request (with full history for memory and grounding)
+            setInteractionState(false);
+            userInput.value = ''; // Clear input field
+            messageCount++; 
+            
+            // --- Price Objection and Discount Logic ---
+            const priceKeywords = ['rate', 'price', 'cost', 'expensive', 'zyada', 'discount', 'kam', 'zayada'];
+            const isPriceObjection = priceKeywords.some(keyword => userText.toLowerCase().includes(keyword));
+
+            if (isPriceObjection) {
+                price_objection_count++;
+                if (price_objection_count >= 3 && !discount_given) {
+                    discount_given = true;
+                    sales_score++; 
+                }
+            } else if (price_objection_count > 0) {
+                 // Reset the counter if the user changes the topic
+                 price_objection_count = 0;
+            }
+
+            // --- Website Need Detection Logic ---
+            const websiteKeywords = ['website', 'site', 'web', 'banao', 'design', 'develop'];
+            const isWebsiteQuery = websiteKeywords.some(keyword => userText.toLowerCase().includes(keyword));
+
+            if (isWebsiteQuery && !website_need_confirmed) {
+                website_need_confirmed = true;
+                sales_score += 2; // High-value lead boost
+            }
+            
+            // --- Payment Intent Detection Logic (Highest Priority) ---
+            const paymentKeywords = ['payment', 'pay', 'transfer', 'dene', 'book', 'contract', 'agree', 'ready to pay', 'finalize'];
+            const isPaymentIntentQuery = paymentKeywords.some(keyword => userText.toLowerCase().includes(keyword));
+
+            if (isPaymentIntentQuery && !payment_intent_confirmed) {
+                payment_intent_confirmed = true;
+                sales_score += 5; // Final conversion signal
+            }
+            // --- END LOGIC ---
+
+            // New: Internal Sales Score and Negotiation Status Logic
+            let dynamicSystemInstruction = systemInstruction;
+
+            if (isPriceObjection) {
+                if (discount_given) {
+                    dynamicSystemInstruction += ` (Negotiation Status: DISCOUNT GIVEN. Do not negotiate further. Focus on value/closing).`;
+                } else if (price_objection_count === 1 || price_objection_count === 2) {
+                    dynamicSystemInstruction += ` (Negotiation Status: PRICE OBJECTION ${price_objection_count}. MUST emphasize value/ROI now).`;
+                } else if (price_objection_count >= 3 && !discount_given) {
+                    dynamicSystemInstruction += ` (Negotiation Status: THIRD OBJECTION. MUST offer a small 3% discount or free add-on NOW).`;
+                }
+            }
+            
+            if (website_need_confirmed) {
+                dynamicSystemInstruction += ` (Lead Status: WEBSITE NEED CONFIRMED. Focus on asking about E-commerce/Features/Consultation for website development).`;
+            }
+
+            if (payment_intent_confirmed) {
+                dynamicSystemInstruction += ` (CRITICAL STATUS: PAYMENT INTENT CONFIRMED. STOP selling/negotiating. Immediately confirm package, ask for invoicing details, and provide the next step to finalize the deal).`;
+            }
+
+            dynamicSystemInstruction += ` (Internal Sales Score: ${sales_score}).`;
+            
+            const payload = {
+                systemInstruction: {
+                    parts: [{ text: dynamicSystemInstruction }]
+                },
+                contents: chatHistoryArray,
+                // Adding Google Search tool for grounded, accurate, and up-to-date information
+                tools: [{ "google_search": {} }],
+            };
+
+            // 4. API Call with Exponential Backoff
+            const maxRetries = 3;
+            let response;
+
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        break; // Success
+                    } else if (response.status === 429) {
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+                    } else {
+                        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                    }
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                         console.error("Final API Call Failed:", error);
+                         displayError(`Sorry, the AI service is currently unavailable. Please check your API key and network connection.`);
+                         setInteractionState(true);
+                         return;
+                    }
+                }
+            }
+
+            // 5. Process Response
+            try {
+                const result = await response.json();
+                
+                let aiText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (aiText) {
+                    // Update sales_score based on AI response content
+                    if (aiText.toLowerCase().includes('consultation') || aiText.toLowerCase().includes('appointment') || aiText.toLowerCase().includes('roi')) {
+                         sales_score++; // Sales pitch attempt successful
+                    }
+
+                    displayMessage(aiText, 'ai');
+                    // 6. Add AI Response to History
+                    chatHistoryArray.push({ role: "model", parts: [{ text: aiText }] });
+                } else {
+                    const blockReason = result.candidates?.[0]?.finishReason || 'Unknown';
+                    displayError(`I couldn't generate a response. Please rephrase your question. Reason: ${blockReason}.`);
+                }
+            } catch (error) {
+                console.error("Error parsing response:", error);
+                displayError("Something went wrong while processing the AI's reply.");
+            }
+            
+            setInteractionState(true);
+            scrollToBottom();
+        }
+
+        // --- EVENT LISTENERS ---
+        
+        sendButton.addEventListener('click', sendMessage);
+
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !sendButton.disabled) {
+                sendMessage();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', scrollToBottom);
+
+    </script>
+</body>
+</html>
